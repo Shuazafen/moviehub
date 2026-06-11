@@ -21,7 +21,13 @@ console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'loaded' : 'missing');
 const app = express();
 
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean),
+  credentials: true,
+}));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/watchlist', watchlistRoutes);
