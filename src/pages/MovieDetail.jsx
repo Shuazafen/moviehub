@@ -21,9 +21,8 @@ function MovieDetail() {
   }, [id]);
 
   const baseEmbedUrl = import.meta.env.VITE_SUPEREMBED_BASE_URL;
-  const token = import.meta.env.VITE_SUPEREMBED_TOKEN;
   const embedUrl = baseEmbedUrl
-    ? `${baseEmbedUrl}${baseEmbedUrl.includes('?') ? '&' : '?'}tmdbId=${encodeURIComponent(id)}${token ? `&token=${encodeURIComponent(token)}` : ''}`
+    ? `${baseEmbedUrl}${encodeURIComponent(id)}&tmdb=1`
     : null;
 
   return (

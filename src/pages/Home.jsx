@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import MovieCard from "../components/MovieCard";
+import ToastContainer from "../components/Toast";
+import { useToast } from "../hooks/useToast";
 import { authHeaders, fetchJson, getToken } from "../utils/api.js";
 
 function Home() {
@@ -11,6 +13,10 @@ function Home() {
   const [query, setQuery] = useState('');
   const [searchSource, setSearchSource] = useState('popular');
   const [searching, setSearching] = useState(false);
+  // Set of TMDB IDs (strings) the user has added this session
+  const [addedIds, setAddedIds] = useState(() => new Set());
+
+  const { toasts, addToast, dismissToast } = useToast();
 
   const loadPopular = async () => {
     try {
@@ -35,13 +41,18 @@ function Home() {
       return;
     }
 
+    const movieId = movie.id?.toString();
+
+    // Optimistically mark as added immediately
+    setAddedIds((prev) => new Set([...prev, movieId]));
+
     try {
       const title = movie.title || movie.original_title || movie.name || 'Untitled';
       await fetchJson('/api/watchlist', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          tmdbId: movie.id?.toString(),
+          tmdbId: movieId,
           title,
           posterPath: movie.poster_path,
           releaseDate: movie.release_date || movie.first_air_date || '',
@@ -49,9 +60,15 @@ function Home() {
           movie,
         }),
       });
-      setStatus(`${title} added to watchlist.`);
+      addToast(`"${title}" added to your watchlist!`, 'success');
     } catch (err) {
-      setStatus(err.message);
+      // Revert if it actually failed
+      setAddedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(movieId);
+        return next;
+      });
+      addToast(err.message, 'error');
     }
   };
 
@@ -93,7 +110,7 @@ function Home() {
             <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
               {searchSource === 'popular'
                 ? 'Popular movies powered by TMDB'
-                : `Search results for “${query.trim()}”`}
+                : `Search results for "${query.trim()}"`}
             </h2>
           </div>
 
@@ -127,10 +144,18 @@ function Home() {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {movies.slice(0, 12).map((movie) => (
-            <MovieCard key={movie.id} movie={movie} onAdd={() => addToWatchlist(movie)} />
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              added={addedIds.has(movie.id?.toString())}
+              onAdd={() => addToWatchlist(movie)}
+            />
           ))}
         </div>
       </main>
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

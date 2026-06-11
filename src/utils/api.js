@@ -18,12 +18,13 @@ export function authHeaders() {
 }
 
 export async function fetchJson(url, options = {}) {
+  const { headers: extraHeaders, ...restOptions } = options;
   const response = await fetch(url, {
+    ...restOptions,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...extraHeaders,
     },
-    ...options,
   });
 
   if (!response.ok) {
